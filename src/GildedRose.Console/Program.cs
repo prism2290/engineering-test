@@ -1,4 +1,10 @@
-﻿namespace GildedRose.Console;
+﻿using GildedRose.Console.Updaters;
+
+// NOTE: Per-item update logic has been refactored into the `Updaters` folder
+// under the `GildedRose.Console.Updaters` namespace. Each updater implements
+// `IItemUpdater` and encapsulates the rules for a specific item type. The
+// `Program` class dispatches to these updaters from `UpdateQuality()`.
+namespace GildedRose.Console;
 
 public class Program
 {

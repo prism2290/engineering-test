@@ -1,5 +1,6 @@
 using Xunit;
 using GildedRose.Console;
+using GildedRose.Console.Updaters;
 
 namespace GildedRose.Tests;
 
