@@ -4,8 +4,18 @@ namespace GildedRose.Console.Updaters
 {
     // Utility helpers used by the concrete updaters.
     // - Centralizes quality bounds (Min/Max)
-    // - Provides predicates to identify special items by name
+    // - Provides predicates to identify special items by name (name-based matching)
     // - Implements ChangeQuality that enforces clamping and ignores Sulfuras
+    //
+    // High-priority notes (read before changing matching rules):
+    // - Name-based detection (e.g. matching "Conjured") is acceptable for
+    //   this kata but is brittle; prefer canonical item types or metadata in
+    //   production systems to avoid fragile string matching.
+    // - Matching is case-insensitive and searches for the substring anywhere
+    //   in the item name (uses OrdinalIgnoreCase). This is intentional but
+    //   should be documented if item naming conventions change.
+    // - Always use ItemUpdaterHelpers.ChangeQuality to adjust Quality so the
+    //   0..50 invariant is enforced in one place; avoid direct mutations.
     internal static class ItemUpdaterHelpers
     {
         public const int MinQuality = 0;

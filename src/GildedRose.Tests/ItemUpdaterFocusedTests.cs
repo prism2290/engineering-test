@@ -71,4 +71,14 @@ public class ItemUpdaterFocusedTests
         Assert.Equal(0, item.Quality);
         Assert.Equal(2, item.SellIn);
     }
+
+    // Conjured items after sell date: should degrade 4 total in one update
+    [Fact]
+    public void Conjured_DegradesTwice_AfterSellDate()
+    {
+        var item = new Item { Name = "Conjured Mana Cake", SellIn = 0, Quality = 10 };
+        new DefaultUpdater().Update(item);
+        Assert.Equal(6, item.Quality);
+        Assert.Equal(-1, item.SellIn);
+    }
 }
