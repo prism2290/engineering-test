@@ -38,13 +38,17 @@ public class Program
     {
         for (var i = 0; i < Items.Count; i++)
         {
+            // Conjured items degrade twice as fast as normal items.
+            var isConjured = !string.IsNullOrEmpty(Items[i].Name) && Items[i].Name.IndexOf("Conjured", System.StringComparison.OrdinalIgnoreCase) >= 0;
+            var decrement = isConjured ? 2 : 1;
+
             if (Items[i].Name != "Aged Brie" && Items[i].Name != "Backstage passes to a TAFKAL80ETC concert")
             {
                 if (Items[i].Quality > 0)
                 {
                     if (Items[i].Name != "Sulfuras, Hand of Ragnaros")
                     {
-                        Items[i].Quality = Items[i].Quality - 1;
+                        Items[i].Quality = System.Math.Max(0, Items[i].Quality - decrement);
                     }
                 }
             }
@@ -90,7 +94,7 @@ public class Program
                         {
                             if (Items[i].Name != "Sulfuras, Hand of Ragnaros")
                             {
-                                Items[i].Quality = Items[i].Quality - 1;
+                                Items[i].Quality = System.Math.Max(0, Items[i].Quality - decrement);
                             }
                         }
                     }
