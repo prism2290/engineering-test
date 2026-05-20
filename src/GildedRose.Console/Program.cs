@@ -1,4 +1,5 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 
 namespace GildedRose.Console;
 
@@ -36,79 +37,80 @@ public class Program
 
     public void UpdateQuality()
     {
+        /*
+         * Refactor notes:
+         * - Extracted small helper predicates to identify item types.
+         * - Centralized min/max quality constants and a ChangeQuality helper to clamp quality.
+         * - Added Conjured detection: items with "Conjured" in the name degrade twice as fast.
+         * - Flattened the original nested logic into clearer per-item steps to ease maintenance
+         *   and to prepare for a future strategy-based extraction.
+         */
+        const int MinQuality = 0;
+        const int MaxQuality = 50;
+
+        // Predicates to identify special item behaviors.
+        bool IsAgedBrie(Item it) => it.Name == "Aged Brie";
+        bool IsBackstage(Item it) => it.Name == "Backstage passes to a TAFKAL80ETC concert";
+        bool IsSulfuras(Item it) => it.Name == "Sulfuras, Hand of Ragnaros";
+        // Conjured items degrade twice as fast; detected by name substring (case-insensitive).
+        bool IsConjured(Item it) => !string.IsNullOrEmpty(it.Name) && it.Name.IndexOf("Conjured", StringComparison.OrdinalIgnoreCase) >= 0;
+
+        // Helper that changes quality while enforcing min/max bounds and skipping Sulfuras.
+        void ChangeQuality(Item it, int delta)
+        {
+            if (IsSulfuras(it)) return; // Legendary item; quality never changes
+            var q = it.Quality + delta;
+            if (q < MinQuality) q = MinQuality;
+            if (q > MaxQuality) q = MaxQuality;
+            it.Quality = q;
+        }
+
+        // Loop through items and apply rules in a single-pass, readable sequence.
         for (var i = 0; i < Items.Count; i++)
         {
-            // Conjured items degrade twice as fast as normal items.
-            var isConjured = !string.IsNullOrEmpty(Items[i].Name) && Items[i].Name.IndexOf("Conjured", System.StringComparison.OrdinalIgnoreCase) >= 0;
-            var decrement = isConjured ? 2 : 1;
+            var item = Items[i];
+            // Conjured items degrade twice as fast (decrement value applied per step).
+            var decrement = IsConjured(item) ? 2 : 1;
 
-            if (Items[i].Name != "Aged Brie" && Items[i].Name != "Backstage passes to a TAFKAL80ETC concert")
+            // Pre sell-date behavior
+            if (IsAgedBrie(item))
             {
-                if (Items[i].Quality > 0)
-                {
-                    if (Items[i].Name != "Sulfuras, Hand of Ragnaros")
-                    {
-                        Items[i].Quality = System.Math.Max(0, Items[i].Quality - decrement);
-                    }
-                }
+                // Aged Brie increases in quality as it gets older.
+                ChangeQuality(item, +1);
+            }
+            else if (IsBackstage(item))
+            {
+                // Backstage passes increase as the concert approaches.
+                ChangeQuality(item, +1);
+                if (item.SellIn < 11) ChangeQuality(item, +1);
+                if (item.SellIn < 6) ChangeQuality(item, +1);
             }
             else
             {
-                if (Items[i].Quality < 50)
+                // Default items (including Conjured) degrade in quality.
+                ChangeQuality(item, -decrement);
+            }
+
+            // Decrease sell-in for non-legendary items
+            if (!IsSulfuras(item)) item.SellIn -= 1;
+
+            // Post sell-date behavior: additional changes after SellIn < 0
+            if (item.SellIn < 0)
+            {
+                if (IsAgedBrie(item))
                 {
-                    Items[i].Quality = Items[i].Quality + 1;
-
-                    if (Items[i].Name == "Backstage passes to a TAFKAL80ETC concert")
-                    {
-                        if (Items[i].SellIn < 11)
-                        {
-                            if (Items[i].Quality < 50)
-                            {
-                                Items[i].Quality = Items[i].Quality + 1;
-                            }
-                        }
-
-                        if (Items[i].SellIn < 6)
-                        {
-                            if (Items[i].Quality < 50)
-                            {
-                                Items[i].Quality = Items[i].Quality + 1;
-                            }
-                        }
-                    }
+                    // Aged Brie increases again after the sell date.
+                    ChangeQuality(item, +1);
                 }
-            }
-
-            if (Items[i].Name != "Sulfuras, Hand of Ragnaros")
-            {
-                Items[i].SellIn = Items[i].SellIn - 1;
-            }
-
-            if (Items[i].SellIn < 0)
-            {
-                if (Items[i].Name != "Aged Brie")
+                else if (IsBackstage(item))
                 {
-                    if (Items[i].Name != "Backstage passes to a TAFKAL80ETC concert")
-                    {
-                        if (Items[i].Quality > 0)
-                        {
-                            if (Items[i].Name != "Sulfuras, Hand of Ragnaros")
-                            {
-                                Items[i].Quality = System.Math.Max(0, Items[i].Quality - decrement);
-                            }
-                        }
-                    }
-                    else
-                    {
-                        Items[i].Quality = Items[i].Quality - Items[i].Quality;
-                    }
+                    // Backstage passes drop to 0 after the concert.
+                    item.Quality = 0;
                 }
                 else
                 {
-                    if (Items[i].Quality < 50)
-                    {
-                        Items[i].Quality = Items[i].Quality + 1;
-                    }
+                    // Default (and Conjured) items degrade again after sell date.
+                    ChangeQuality(item, -decrement);
                 }
             }
         }
